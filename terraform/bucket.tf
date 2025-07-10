@@ -1,5 +1,5 @@
 resource "google_storage_bucket" "my_bucket" {
-  name     = "my-unique-bucket-name-12345" # must be globally unique
+  name     = "my-unique-bucket-name" # must be globally unique
   location = "US"
   project  = var.project_id
 
