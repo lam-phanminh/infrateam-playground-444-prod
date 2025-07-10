@@ -1,0 +1,62 @@
+name: Terraform-graph
+
+on:
+  pull_request:
+    branches: 
+      - main
+
+env:
+  PROJECT: gridsz-ac # {"$kpt-set":"project"}
+  REPO_NAME: googlecloud-gridsz-ac-uat # {"$kpt-set":"app"}
+
+jobs:
+  terraform-graph:
+    name: terraform-graph
+    runs-on: ubuntu-latest    
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v2
+        with: 
+          fetch-depth: '0'
+          token: ${{ secrets.GH_TOKEN }}
+          
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        
+      - name: Install Graphviz
+        run: sudo apt-get update && sudo apt-get install -y graphviz
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+      - uses: mdecoleman/pr-branch-name@1.2.0
+        id: branchname
+        with:
+          repo-token: ${{ secrets.GH_TOKEN }}
+          
+      - run: echo ${{ steps.branchname.outputs.branch }}     
+      
+      - name: create terraform graph
+        run: |
+          mkdir -p ../terraform-graph
+          terraform graph > ../terraform-graph/graph.dot
+          cat ../terraform-graph/graph.dot
+          dot -Tpng ../terraform-graph/graph.dot -o ../terraform-graph/graph.png
+          cat ../terraform-graph/graph.png
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        
+      - name: update file
+        run: |        
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git commit -a -m "update terraform graph" --allow-empty     
+          git checkout ${{ steps.branchname.outputs.branch }}          
+          git push -u origin ${{ steps.branchname.outputs.branch }}  
+
+   
